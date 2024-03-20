@@ -43,23 +43,26 @@ param nextAuthHash string = uniqueString(newGuid())
 
 param tags object = {}
 
-var openai_name = toLower('${name}-aillm-${resourceToken}')
-var openai_dalle_name = toLower('${name}-aidalle-${resourceToken}')
-var openai_gpt_vision_name = toLower('${name}-aivision-${resourceToken}')
+var openai_name = toLower('${name}-aillm')
+var openai_dalle_name = toLower('${name}-aidalle')
+var openai_gpt_vision_name = toLower('${name}-aivision')
 
-var form_recognizer_name = toLower('${name}-form-${resourceToken}')
-var speech_service_name = toLower('${name}-speech-${resourceToken}')
-var cosmos_name = toLower('${name}-cosmos-${resourceToken}')
-var search_name = toLower('${name}search${resourceToken}')
-var webapp_name = toLower('${name}-webapp-${resourceToken}')
-var appservice_name = toLower('${name}-app-${resourceToken}')
+var form_recognizer_name = toLower('${name}-form')
+var speech_service_name = toLower('${name}-speech')
+//var cosmos_name = toLower('${name}-cosmos')
+var cosmos_name = 'ami-cosmos'
+var search_name = toLower('${name}search')
+//var webapp_name = toLower('${name}-webapp')
+var webapp_name = 'ami-chatgpt'
+var appservice_name = toLower('${name}')
 // storage name must be less than 24 chars, alphanumeric only - token is 13
 var storage_prefix = take(name, 8)
-var storage_name = toLower('${storage_prefix}sto${resourceToken}')
+//var storage_name = toLower('${storage_prefix}sto${resourceToken}')
+var storage_name = 'amichatgpt'
 // keyvault name must be less than 24 chars - token is 13
 var kv_prefix = take(name, 7)
-var keyVaultName = toLower('${kv_prefix}-kv-${resourceToken}')
-var la_workspace_name = toLower('${name}-la-${resourceToken}')
+var keyVaultName = toLower('${kv_prefix}-kv')
+var la_workspace_name = toLower('${name}-la')
 var diagnostic_setting_name = 'AppServiceConsoleLogs'
 
 var keyVaultSecretsOfficerRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
@@ -94,21 +97,8 @@ var llmDeployments = [
   }
 ]
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2020-06-01' = {
-  name: appservice_name
-  location: location
-  tags: tags
-  properties: {
-    reserved: true
-  }
-  sku: {
-    name: 'P0v3'
-    tier: 'Premium0V3'
-    size: 'P0v3'
-    family: 'Pv3'
-    capacity: 1
-  }
-  kind: 'linux'
+resource appServicePlan 'Microsoft.Web/serverfarms@2020-06-01' existing = {
+  name: 'linux-containers-website'
 }
 
 resource webApp 'Microsoft.Web/sites@2020-06-01' = {
@@ -124,12 +114,12 @@ resource webApp 'Microsoft.Web/sites@2020-06-01' = {
       appCommandLine: 'next start'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      appSettings: [ 
-        { 
+      appSettings: [
+        {
           name: 'AZURE_KEY_VAULT_NAME'
           value: keyVaultName
         }
-        { 
+        {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
           value: 'true'
         }
@@ -187,11 +177,13 @@ resource webApp 'Microsoft.Web/sites@2020-06-01' = {
         }
         {
           name: 'NEXTAUTH_SECRET'
-          value: '@Microsoft.KeyVault(VaultName=${kv.name};SecretName=${kv::NEXTAUTH_SECRET.name})'
+          //value: '@Microsoft.KeyVault(VaultName=${kv.name};SecretName=${kv::NEXTAUTH_SECRET.name})'
+          value: 'ami-chatgpt-dfdszgdsgdgdfxgdfgdsgewt4wt6wsdf'
         }
         {
           name: 'NEXTAUTH_URL'
-          value: 'https://${webapp_name}.azurewebsites.net'
+          //value: 'https://${webapp_name}.azurewebsites.net'
+          value: 'https://ami-chatgpt.azurewebsites.net'
         }
         {
           name: 'AZURE_COSMOSDB_URI'
@@ -205,18 +197,18 @@ resource webApp 'Microsoft.Web/sites@2020-06-01' = {
           name: 'AZURE_SEARCH_API_KEY'
           value: '@Microsoft.KeyVault(VaultName=${kv.name};SecretName=${kv::AZURE_SEARCH_API_KEY.name})'
         }
-        { 
+        {
           name: 'AZURE_SEARCH_NAME'
           value: search_name
         }
-        { 
+        {
           name: 'AZURE_SEARCH_INDEX_NAME'
           value: searchServiceIndexName
         }
-        { 
+        {
           name: 'AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT'
           value: 'https://${form_recognizer_name}.cognitiveservices.azure.com/'
-        }        
+        }
         {
           name: 'AZURE_DOCUMENT_INTELLIGENCE_KEY'
           value: '@Microsoft.KeyVault(VaultName=${kv.name};SecretName=${kv::AZURE_DOCUMENT_INTELLIGENCE_KEY.name})'
